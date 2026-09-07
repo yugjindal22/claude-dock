@@ -174,6 +174,10 @@ def create(home, name, color, source):
 
 def launch(home, name):
     p = paths(home, name)
+    if not (p["root"] / "profile.json").is_file():
+        raise ValueError("Profile not found. Run create first.")
+    if not p["data"].is_dir():
+        raise ValueError("Profile data folder is missing. Restore it before launching.")
     with locked(p["root"]):
         config_path = p["root"] / "profile.json"
         if not config_path.exists():

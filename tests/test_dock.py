@@ -50,12 +50,30 @@ class UnitTests(unittest.TestCase):
             home = Path(temp)
             p = dock.paths(home, "two")
             p["root"].mkdir(parents=True)
+            p["data"].mkdir(parents=True)
             (p["root"] / "profile.json").write_text("{}")
             (p["root"] / "native").touch()
             with patch.object(dock, "profile_pid", return_value=123), patch.object(dock, "refresh") as refresh, patch.object(dock, "run") as run:
                 dock.launch(home, "two")
                 refresh.assert_not_called()
                 self.assertEqual(run.call_args.args[1:], ("focus", 123))
+
+    def test_unknown_launch_does_not_create_a_profile(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            with self.assertRaisesRegex(ValueError, "not found"):
+                dock.launch(home, "unknown")
+            self.assertFalse(dock.paths(home, "unknown")["root"].exists())
+
+    def test_missing_data_does_not_silently_reset_login(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            p = dock.paths(home, "two")
+            p["root"].mkdir(parents=True)
+            (p["root"] / "profile.json").write_text("{}")
+            with self.assertRaisesRegex(ValueError, "data folder is missing"):
+                dock.launch(home, "two")
+            self.assertFalse(p["data"].exists())
 
 
 @unittest.skipUnless(sys.platform == "darwin", "native build smoke test requires macOS")
